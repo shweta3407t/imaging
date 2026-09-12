@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
@@ -18,9 +19,15 @@ public class ImageFileUploadController {
     public ImageFileUploadService imageFileUploadService;
 
 
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String > uploadImage(@ModelAttribute ImageUploadRequest imageUploadRequest) throws IOException {
+    @PostMapping(value = "/upload" /*  , consumes = MediaType.MULTIPART_FORM_DATA_VALUE */ )
+    public ResponseEntity<String > uploadImage( @RequestParam("title") String title,
+                                               @RequestParam("description") String  description,
+                                               @RequestBody Tag tag,
+                                               @RequestBody Category category ,
+                                                @ModelAttribute("file") MultipartFile file )   throws IOException {
         // Save the uploaded file and data in db and blob stoage
+
+        ImageUploadRequest imageUploadRequest=new ImageUploadRequest(title , description , category , tag , file);
 
         imageFileUploadService.saveImageFileRequest(imageUploadRequest);
 

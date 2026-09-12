@@ -8,6 +8,7 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +30,8 @@ public class ImageFileUploadService {
     @Autowired
     public CategoryModelRepository categoryModelRepository;
 
-    Path storageDirectory= Paths.get("./uploaded-images");
+    Path originalStorageDirectory= Paths.get("./uploaded/originals/");
+    Path thumbnailStorageDirectory=Paths.get("./uploads/thumbnails/");
 
     public void saveImageFileRequest(ImageUploadRequest imageUploadRequest) throws IOException {
         ImageUpload uploadImage=new ImageUpload();
@@ -38,63 +40,93 @@ public class ImageFileUploadService {
         uploadImage.setDiscription(imageUploadRequest.getDescription());
 
 
-        uploadImage.setCategory(imageUploadRequest.getCategory());
-
-        Tag tag=imageUploadRequest.getTag();
-        uploadImage.getTag().add(tag);
-
-
         Category category=imageUploadRequest.getCategory();
-        categoryModelRepository.save(category);
-
-        tagModelRepository.save(tag);
-
-
-
-
-
-        // 1. Generate a unique name for the final compress file
-        MultipartFile files=imageUploadRequest.getFiles();
-        System.out.println(files.getOriginalFilename());
-
-
-        //create folder if not exist
-        if( !Files.exists(storageDirectory)){
-            Files.createDirectory(storageDirectory);
+        if(category != null){
+            uploadImage.setCategory(imageUploadRequest.getCategory());
+            categoryModelRepository.save(category);
         }
 
-        String fileName= UUID.randomUUID() + "_" + files.getOriginalFilename();
 
-        Path targetedLocation=storageDirectory.resolve(fileName);
+        Tag tag=imageUploadRequest.getTag();
+        if(tag!=null){
+            uploadImage.getTag().add(tag);
+            tagModelRepository.save(tag);
 
-       Files.copy(files.getInputStream() , targetedLocation , StandardCopyOption.REPLACE_EXISTING);
-
-
-        //compress
-        File compressedFile = new File(storageDirectory + "Compressed" + files.getOriginalFilename());
-        Thumbnails.of(fileName)
-                .scale(1.0)
-                .outputQuality(0.6)
-                .toFile(compressedFile);
-
-        //copy file content in folder
-        Files.copy(compressedFile.toPath() ,  targetedLocation , StandardCopyOption.REPLACE_EXISTING);
-
-//        //convert it into url
-//         String downloadUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-//                .path("/api/files/download/")
-//                .path(fileName)
-//                .toUriString();
-//
-//
-//        String compressUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-//                .path("/api/files/download/")
-//                .path(compressedFile.getName())
-//                .toUriString();
+        }
 
 
-//        uploadImage.setImageUrl(downloadUrl);
-        uploadImage.setThumbnailUrl(compressedFile.toString());
+//        //create folder if not exist
+//        if( !Files.exists(originalStorageDirectory)){
+//            Files.createDirectory(originalStorageDirectory);
+//        }
+//        if(!Files.exists(thumbnailStorageDirectory)){
+//            Files.createDirectory(thumbnailStorageDirectory);
+//        }
+
+        Files.createDirectories(originalStorageDirectory);
+        Files.createDirectories(thumbnailStorageDirectory);
+
+
+        // get file from request
+        MultipartFile file=imageUploadRequest.getFiles();
+        System.out.println(file.getOriginalFilename());
+
+
+
+        //1.generate unique file name and save original file to folder
+        String uniqueFileName= UUID.randomUUID() + "_" + file.getOriginalFilename();
+
+        Path destinationPathOfOriginalUniqueFile=originalStorageDirectory.resolve(uniqueFileName);
+        Files.copy(file.getInputStream() , destinationPathOfOriginalUniqueFile , StandardCopyOption.REPLACE_EXISTING);
+
+
+
+
+      // 2. generate thumbnail file and save it to folder
+        String thumbnailFileName="Compressed_" +uniqueFileName;
+
+        Path destinationPathOfCompressFile =  thumbnailStorageDirectory.resolve(thumbnailFileName);
+        try {
+            // 3. Compress and write directly to the final destination path
+            Thumbnails.of(destinationPathOfCompressFile.toFile())
+                    .scale(1.0)
+                    .outputQuality(0.6)
+                    .toFile(destinationPathOfCompressFile.toFile());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //convert it into url
+         String downloadUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/files/download/")
+                .path(uniqueFileName)
+                .toUriString();
+
+        String compressUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/files/download/")
+                .path( thumbnailFileName )
+                .toUriString();
+
+
+        uploadImage.setImageUrl(downloadUrl);
+        uploadImage.setThumbnailUrl(compressUrl);
 
         imageFileUploadRepository.save(uploadImage);
 
@@ -121,25 +153,26 @@ public class ImageFileUploadService {
 
         ListImageResponse response=new ListImageResponse();
 
-        ImageUpload imageData=imageFileUploadRepository.findByTitle(tag);
+        ListImageResponse imageData=tagModelRepository. findByName(tag);
 
         response.setTitle(imageData.getTitle());
-        response.setTag(imageData.getTag().toString());
-        response.setCategory(imageData.getCategory().getName());
+        response.setTag(imageData.getTag());
+        response.setCategory(imageData.getCategory() );
         response.setThumbnailUrl(imageData.getThumbnailUrl());
 
         return  response;
 
     }
+
     public  ListImageResponse searchImageByCategory(String category){
 
         ListImageResponse response=new ListImageResponse();
 
-        ImageUpload imageData=imageFileUploadRepository.findByTitle(category);
+        ListImageResponse imageData=categoryModelRepository.findByName(category);
 
         response.setTitle(imageData.getTitle());
-        response.setTag(imageData.getTag().toString());
-        response.setCategory(imageData.getCategory().getName());
+        response.setTag(imageData.getTag());
+        response.setCategory(imageData.getCategory());
         response.setThumbnailUrl(imageData.getThumbnailUrl());
 
         return  response;
