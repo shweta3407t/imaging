@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -40,19 +41,65 @@ public class ImageFileUploadService {
         uploadImage.setDiscription(imageUploadRequest.getDescription());
 
 
-        Category category=imageUploadRequest.getCategory();
-        if(category != null){
-            uploadImage.setCategory(imageUploadRequest.getCategory());
+//        Category category=imageUploadRequest.getCategory();
+//        if(category != null){
+//            uploadImage.setCategory(imageUploadRequest.getCategory());
+//            categoryModelRepository.save(category);
+//        }
+//
+//
+//        Tag tag=imageUploadRequest.getTag();
+//        if(tag!=null){
+//            uploadImage.getTag().add(tag);
+//            tagModelRepository.save(tag);
+//
+//        }
+
+
+        String categoryName = imageUploadRequest.getCategory();
+
+        Optional<Category> optionalCategory = categoryModelRepository.findByName(categoryName);
+
+        Category category;
+        if (optionalCategory.isPresent()) {
+            category = optionalCategory.get();
+        } else {
+            category = new Category();
+            category.setName(categoryName);
             categoryModelRepository.save(category);
         }
 
+//        Category category = categoryModelRepository
+//                .findByName(categoryName);
 
-        Tag tag=imageUploadRequest.getTag();
-        if(tag!=null){
-            uploadImage.getTag().add(tag);
-            tagModelRepository.save(tag);
+//        if (category == null) {
+//            category = new Category();
+//            category.setName(categoryName);
+//            category = categoryModelRepository.save(category);
+//        }
 
+        uploadImage.setCategory(category);
+
+
+        String tagName = imageUploadRequest.getTag();
+
+        Tag tag = tagModelRepository.findByName(tagName);
+
+        if (tag == null) {
+            tag = new Tag();
+            tag.setName(tagName);
+            tag = tagModelRepository.save(tag);
         }
+
+        uploadImage.getTag().add(tag);
+
+
+
+
+
+
+
+
 
 
 //        //create folder if not exist
@@ -133,51 +180,49 @@ public class ImageFileUploadService {
 
     }
 
+//
+//    public  ListImageResponse searchImageByTitle(String imageTitle){
+//
+//        ListImageResponse response=new ListImageResponse();
+//
+//        ImageUpload imageData=imageFileUploadRepository.findByTitle(imageTitle);
+//
+//        response.setTitle(imageData.getTitle());
+//        response.setTag(imageData.getTag().toString());
+//        response.setCategory(imageData.getCategory().getName());
+//        response.setThumbnailUrl(imageData.getThumbnailUrl());
+//
+//        return  response;
+//
+//    }
 
-    public  ListImageResponse searchImageByTitle(String imageTitle){
+//    public  ListImageResponse searchImageByTag(String tagName){
+//
+//        ListImageResponse response=new ListImageResponse();
+//
+//        Tag imageData=imageFileUploadRepository.findByTitle();
+//
+//
+//
+//
+//        return  response;
+//
+//    }
 
-        ListImageResponse response=new ListImageResponse();
-
-        ImageUpload imageData=imageFileUploadRepository.findByTitle(imageTitle);
-
-        response.setTitle(imageData.getTitle());
-        response.setTag(imageData.getTag().toString());
-        response.setCategory(imageData.getCategory().getName());
-        response.setThumbnailUrl(imageData.getThumbnailUrl());
-
-        return  response;
-
-    }
-
-    public  ListImageResponse searchImageByTag(String tag){
-
-        ListImageResponse response=new ListImageResponse();
-
-        ListImageResponse imageData=tagModelRepository. findByName(tag);
-
-        response.setTitle(imageData.getTitle());
-        response.setTag(imageData.getTag());
-        response.setCategory(imageData.getCategory() );
-        response.setThumbnailUrl(imageData.getThumbnailUrl());
-
-        return  response;
-
-    }
-
-    public  ListImageResponse searchImageByCategory(String category){
-
-        ListImageResponse response=new ListImageResponse();
-
-        ListImageResponse imageData=categoryModelRepository.findByName(category);
-
-        response.setTitle(imageData.getTitle());
-        response.setTag(imageData.getTag());
-        response.setCategory(imageData.getCategory());
-        response.setThumbnailUrl(imageData.getThumbnailUrl());
-
-        return  response;
-
-    }
+//    public  ListImageResponse searchImageByCategory(String category){
+//
+//        ListImageResponse response=new ListImageResponse();
+//
+//        ListImageResponse imageData=categoryModelRepository.findByName(category);
+//
+//        response.setTitle(imageData.getTitle());
+//        response.setTag(imageData.getTag());
+//        response.setCategory(imageData.getCategory());
+//        response.setThumbnailUrl(imageData.getThumbnailUrl());
+//
+//        return  response;
+//
+//    }
 
 
 

@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TagModelRepository extends JpaRepository<Tag,Long> {
     @EntityGraph(attributePaths = "tag")
-    ListImageResponse findByName(String tagName);
+    Tag findByName(String tagName);
 
     Boolean existsByName(String tag);
 }
